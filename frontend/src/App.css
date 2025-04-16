@@ -15,12 +15,10 @@
 
 .App-header {
   background-color: #282c34;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
   color: white;
 }
 
@@ -35,4 +33,50 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+
+
+
+
+
+
+
+
+.source-selection {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dropdown-wrapper {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.dropdown,
+.target-box {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.target-box {
+  background-color: #f1f1f1;
+  color: #555;
+  display: flex;
+  align-items: center;
 }
