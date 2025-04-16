@@ -9,13 +9,16 @@ const [status, setStatus] = useState("");
 const [result, setResult] = useState("");
 
 const [selectedColumns, setSelectedColumns] = useState([]);
+const [columnMappings, setColumnMappings] = useState({});
+
 
 const [tablesLoaded, setTablesLoaded] = useState(false);
-const [loadingTables, setLoadingTables] = useState(false);
 const [columnsLoaded, setColumnsLoaded] = useState(false);
 const [tables, setTables] = useState([]);
 
 const [columns, setColumns] = useState([]);
+
+const [flat, setFlat] = useState(false);
 
 const [con, setCon] = useState(false);
 
@@ -80,11 +83,37 @@ const [config, setConfig] = useState({
     };
 
 
-  const handleFileUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
+    const handleFileUpload = async (e) => {
+      setFlat(true);
+      setTablesLoaded(false);
+      setColumnsLoaded(false);
+      setSelectedColumns([]);
+    
+      const file = e.target.files[0];
+      if (!file) return;
+    
+      const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+      setTables([fileNameWithoutExt]);
+    
+      // ⬇️ Preview columns immediately
+      previewCSVColumns(file);
+    };
+    
+    const previewCSVColumns = (file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const firstLine = text.split("\n")[0];
+        const headers = firstLine.split(",").map((h) => h.trim().replace(/['"]+/g, ""));
+        setColumns(headers);
+        console.log("Previewed columns:", headers);
+        setColumnsLoaded(true);
+        setTablesLoaded(true);
+      };
+      reader.readAsText(file);
+    };
+    
+      
 
   const toggleColumn = (col) => {
     if (selectedColumns.includes(col)) {
@@ -104,7 +133,19 @@ const [config, setConfig] = useState({
             <select
                 className="dropdown"
                 value={source}
-                onChange={(e) => setSource(e.target.value)}
+                onChange={(e) => {setSource(e.target.value)
+                setTablesLoaded(false); // Reset tables loaded state when source changes
+                setColumnsLoaded(false); // Reset columns loaded state when source changes
+                setTables([]); // Reset tables when source changes
+                setColumns([]); // Reset columns when source changes
+                setCon(false); // Reset connection state when source changes
+                setMessage(""); // Reset message when source changes
+                setSelectedColumns([]); // Reset selected columns when source changes
+                setFile(null); // Reset file when source changes
+                setStatus(""); // Reset status when source changes
+                setResult(""); // Reset result when source changes
+                }
+            }
             >
                 <option>ClickHouse</option>
                 <option>Flat File</option>
@@ -116,8 +157,7 @@ const [config, setConfig] = useState({
         </div>
     </div>
 
-    {source === "ClickHouse" && (
-        <div className="border p-4 rounded-md shadow space-y-2 mt-4">
+    <div className="border p-4 rounded-md shadow space-y-2 mt-4">
             <div className="font-semibold">ClickHouse Config:</div>
             <div className="grid grid-cols-2 gap-4">
                 <input className="border p-2 rounded" placeholder="Host" name="host" value={config.host} onChange={handleChange} />
@@ -135,9 +175,6 @@ const [config, setConfig] = useState({
                 {con ? "Connected" : "Connect"}
             </button>
         </div>
-    )}
-
-    {source === "Flat File" && (
         <div className="border p-4 rounded-md shadow flex items-center gap-4 mt-4">
             <label className="flex items-center gap-2">
                 Flat File:
@@ -152,13 +189,12 @@ const [config, setConfig] = useState({
                 </select>
             </label>
         </div>
-    )}
 
     {/* Table & Load Columns */}
     <div className="border p-4 rounded-md shadow space-y-4">
         {!tablesLoaded ? (
             !con ? (
-                <div className="text-blue-600">Please connect to load tables.</div>
+                <div className="text-blue-600">Please connect/select FILE to load tables.</div>
             ) : (
                 <button
                     onClick={handleLoadTable}
@@ -190,25 +226,59 @@ const [config, setConfig] = useState({
                             ))}
                         </select>
                                     </label>
-                                    <button
+                                    {source==="ClickHouse"&&(
+                                        <button
                                         onClick={handleLoadColumns}
                                         className="px-4 py-1 bg-green-500 text-white rounded"
                                     >
                                         Load Columns
                                     </button>
+                                    )}
                                 </div>
 
                                 {/* Column Selection */}
-                {columnsLoaded && Array.isArray(columns) && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
-                        {columns.map((col) => (
-                            <label key={col} className="flex items-center gap-2">
-                                <input type="checkbox" />
-                                {col}
-                            </label>
-                        ))}
-                    </div>
-                )}
+                                {columnsLoaded && Array.isArray(columns) && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+    {/* Source Columns */}
+    <div>
+      <h3 className="font-semibold mb-2">📥 Source Columns</h3>
+      <div className="space-y-1">
+        {columns.map((col) => (
+          <label key={col} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selectedColumns.includes(col)}
+              onChange={() => toggleColumn(col)}
+            />
+            <span>{col}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+
+    {/* Target Mapping */}
+    <div>
+      <h3 className="font-semibold mb-2">📤 Target Columns</h3>
+      <div className="space-y-1">
+        {selectedColumns.map((col) => (
+          <div key={col} className="flex items-center gap-2">
+            <span className="w-28">{col}</span>
+            <span className="text-gray-500">→</span>
+            <input
+              className="border px-2 py-1 rounded w-40"
+              placeholder="Target column name"
+              value={columnMappings[col] || ""}
+              onChange={(e) =>
+                setColumnMappings({ ...columnMappings, [col]: e.target.value })
+              }
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
             </>
         )}
     </div>
