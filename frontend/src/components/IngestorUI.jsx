@@ -57,7 +57,28 @@ const [config, setConfig] = useState({
             setMessage(`❌ failed: ${err.response?.data || err.message}`);
           }
     };
-  const column = [];
+
+    const handleLoadColumns = async() => {
+        try {
+            console.log(tables);
+            const res = await axios.post(
+                "http://localhost:8080/api/clickhouse/columns",
+                { tables }, // <- sending array of selected tables
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+            console.log("result",res);
+            setColumns(res.data);
+            setColumnsLoaded(true);
+            setCon(true);
+            setMessage(`✅ loaded columns: ${res.data.message || "Success"}`);
+          } catch (err) {
+            setMessage(`❌ failed: ${err.response?.data || err.message}`);
+          }
+    };
+
 
   const handleFileUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -148,13 +169,19 @@ const [config, setConfig] = useState({
             )
         ) : (
             <>
-                {/* Table Selection */}
-                <div className="flex items-center gap-4">
-                    <label>
-                        Table:
-                        <select
+                                <div className="flex items-center gap-4">
+                                    <label>
+                                        Table:
+                                        <select
+                            multiple
                             className="ml-2 border rounded px-2 py-1"
-                            onChange={(e) => setSelectedColumns([])} // Reset selected columns on table change
+                            onChange={(e) => {
+                                const selectedOptions = Array.from(e.target.selectedOptions).map(
+                                    (option) => option.value
+                                );
+                                setSelectedColumns([]); // Reset selected columns on table change
+                                setTables(selectedOptions); // Save selected tables in array
+                            }}
                         >
                             {tables.map((table, index) => (
                                 <option key={index} value={table}>
@@ -162,23 +189,17 @@ const [config, setConfig] = useState({
                                 </option>
                             ))}
                         </select>
-                    </label>
-                    <button
-                        onClick={() => {
-                            setColumnsLoaded(false);
-                            setTimeout(() => {
-                                setColumns(["price", "date", "postcode", "property_type"]);
-                                setColumnsLoaded(true);
-                            }, 1000); // Simulate column loading
-                        }}
-                        className="px-4 py-1 bg-green-500 text-white rounded"
-                    >
-                        Load Columns
-                    </button>
-                </div>
+                                    </label>
+                                    <button
+                                        onClick={handleLoadColumns}
+                                        className="px-4 py-1 bg-green-500 text-white rounded"
+                                    >
+                                        Load Columns
+                                    </button>
+                                </div>
 
-                {/* Column Selection */}
-                {columnsLoaded && (
+                                {/* Column Selection */}
+                {columnsLoaded && Array.isArray(columns) && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
                         {columns.map((col) => (
                             <label key={col} className="flex items-center gap-2">
