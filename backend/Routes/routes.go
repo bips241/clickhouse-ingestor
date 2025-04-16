@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	handlers "backend/Handlers"
-	"backend/config"
+	"backend/clickhouse"
 
 	"github.com/gorilla/mux"
 )
@@ -18,9 +18,9 @@ func RegisterRoutes() *mux.Router {
 	}).Methods("GET")
 
 	// ClickHouse related
-	router.HandleFunc("/api/clickhouse/connect", config.ConnectClickHouse).Methods("POST")
+	router.HandleFunc("/api/clickhouse/connect", clickhouse.ConnectClickHouse).Methods("POST")
 	router.HandleFunc("/api/clickhouse/tables", handlers.ListTables).Methods("GET")
-	router.HandleFunc("/api/clickhouse/columns", handlers.GetColumns).Methods("POST")
+	router.HandleFunc("/api/clickhouse/columns", handlers.GetColumns).Methods("GET")
 
 	// FlatFile and ingestion
 	router.HandleFunc("/api/ingest/to-flatfile", handlers.IngestToFlatFile).Methods("POST")
