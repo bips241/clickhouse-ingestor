@@ -1,44 +1,28 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"log"
+	"net/http"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
+	routes "backend/Routes"
+
+	"github.com/rs/cors"
 )
 
 func main() {
-	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{"localhost:9000"},
-		Auth: clickhouse.Auth{
-			Database: "default",
-			Username: "default",
-			Password: "mysecret", // use your password
-		},
-		DialTimeout: 5 * 1000000000, // 5s in nanoseconds
+	router := routes.RegisterRoutes()
+
+	// Setup CORS middleware
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},           // Allow all origins (for testing)
+		AllowedMethods:   []string{"GET", "POST"}, // Allowed HTTP methods
+		AllowedHeaders:   []string{"*"},           // Allow all headers
+		AllowCredentials: true,
 	})
-	if err != nil {
-		panic(err)
-	}
 
-	if err := conn.Ping(context.Background()); err != nil {
-		panic(err)
-	}
+	// Wrap router with CORS
+	handler := c.Handler(router)
 
-	fmt.Println("✅ Connected to ClickHouse!")
-
-	// Fetch and list tables
-	rows, err := conn.Query(context.Background(), "SHOW TABLES")
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("📦 Tables in database:")
-	for rows.Next() {
-		var table string
-		if err := rows.Scan(&table); err != nil {
-			panic(err)
-		}
-		fmt.Println(" -", table)
-	}
+	log.Println("🚀 Server running at http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
